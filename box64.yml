@@ -1,0 +1,45 @@
+name: Build Box64 for Termux
+
+on:
+  workflow_dispatch:  # تشغيل يدوي
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Box64
+        uses: actions/checkout@v4
+        with:
+          repository: ptitSeb/box64
+          path: box64
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y cmake build-essential git
+
+      - name: Configure Box64 for Termux
+        working-directory: ./box64
+        run: |
+          mkdir build && cd build
+          cmake .. \
+            -DTERMUX=1 \
+            -DARM_DYNAREC=ON \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DBAD_SIGNAL=ON \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_C_FLAGS="-O3 -mcpu=native"
+
+      - name: Build Box64
+        working-directory: ./box64/build
+        run: make -j2
+
+      - name: Upload box64 binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: box64-termux
+          path: ./box64/build/box64
+          retention-days: 30
