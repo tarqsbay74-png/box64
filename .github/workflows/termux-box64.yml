@@ -1,0 +1,48 @@
+name: Build Box64 - Termux (بدون Early Exit)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  termux:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout Box64
+        uses: actions/checkout@v4
+        with:
+          repository: ptitSeb/box64
+          fetch-depth: 1
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y cmake clang lld ninja-build git wget
+
+      - name: Prepare Termux Libraries
+        run: |
+          wget https://packages.termux.dev/apt/termux-main/pool/main/liba/libandroid-sysv-semaphore/libandroid-sysv-semaphore_0.1-1_aarch64.deb
+          sudo dpkg -i *.deb || true
+
+      - name: Configure Box64
+        run: |
+          mkdir -p build && cd build
+          cmake .. -G Ninja \
+            -DTERMUX=1 \
+            -DARM_DYNAREC=ON \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBAD_SIGNAL=ON \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_C_FLAGS="-O3 -U__INT128__ -U__uint128_t -mcpu=generic -fno-strict-aliasing -Wno-error"
+
+      - name: Build Box64
+        run: |
+          cd build
+          ninja -v
+
+      - name: Upload box64
+        uses: actions/upload-artifact@v4
+        with:
+          name: box64-termux-prebuilt
+          path: build/box64
+          retention-days: 30
